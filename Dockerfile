@@ -1,36 +1,35 @@
-FROM thyrlian/android-sdk:7.2
+FROM alpine:latest
 
-# Set Work Directory
-WORKDIR home/project
+# Install  dependencies
+RUN apk update
+RUN apk add --virtual build-dependencies build-base
+RUN apk add curl zip openjdk11 ruby-dev git openssh-client
 
-# Install Necessary SDK Tools
-RUN sdkmanager "build-tools;30.0.3" "platforms;android-30"
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 
-# Refresh Package Manager
-RUN apt-get update
+# Setup downloads folder for dependencies.
+RUN mkdir /tmp/downloads
 
-# Install Ruby and Dev Tools for Fast Lane
-RUN apt-get install -y ruby-full ubuntu-dev-tools
+# Download, verify and extract android command line tools.
+RUN curl -o /tmp/downloads/commandlinetools-linux-8512546_latest.zip \
+https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
 
-# Install Bundler for Fast Lane
+RUN sha256sum /tmp/downloads/commandlinetools-linux-8512546_latest.zip
+
+RUN echo '2ccbda4302db862a28ada25aa7425d99dce9462046003c1714b059b5c47970d8  /tmp/downloads/commandlinetools-linux-8512546_latest.zip' \
+> /tmp/downloads/commandlinetools-linux-8512546_latest.sha256
+
+RUN sha256sum -c /tmp/downloads/commandlinetools-linux-8512546_latest.sha256
+
+RUN unzip /tmp/downloads/commandlinetools-linux-8512546_latest.zip -d /usr/bin/android/
+
+ENV ANDROID_HOME=/usr/bin/android
+ENV PATH=$PATH:/usr/bin/android/cmdline-tools/bin
+
+RUN rm -r /tmp/downloads/*
+
+# Install essential Android Sdk build tools.
+RUN yes | sdkmanager --sdk_root=/usr/bin/android 'build-tools;31.0.0' 'platforms;android-31'
+
+# Install bundler to use with fastlane.
 RUN gem install bundler
-
-# Create Project Folder
-RUN mkdir project; cd project
-
-# Initialize Git Repositoru
-RUN git init
-
-# Add remote url
-RUN git remote add origin ${GIT_REMOTE_URL}
-
-# Fetch Repository & Reset to Commit
-RUN git fetch origin ${CI_COMMIT_SHORT_SHA}; git reset --hard FETCH_HEAD
-
-# Run Bundler Install
-RUN bundle install
-
-# Copy Gradle Cache
-COPY ./build-cache ./build-cache
-
-# Run Assemble Debug
