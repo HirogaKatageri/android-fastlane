@@ -1,3 +1,3 @@
-# Android Fastlane Docker Image
+# Android with Fastlane CI Docker Image
 
-This image is made minimally ready for deployment of Android Applications using Fastlane. It uses Alpine Linux for a very minimal linux image.
+A docker image for Android with Fastlane included. Can be used with Gitlab CI. 
